@@ -9,13 +9,17 @@
 # 执行相关
 
 脚本输出结果示例如下：  
+<pre>
 Domain Name                Expiration Date                 Days Left   Threshold   Status  
 abc.com                    2020-02-06 00:37:35             329         30          Valid  
 xyz.com                    2019-07-21 14:27:36             130         150         Expiring  
 sample.com                 2019-09-07 21:48:29             178         30          Valid  
+</pre>
 
 计划任务配置如下（结合cronmon）：  
+<pre>
 40 10 * * * cd /path/to/dns-domain-expiration-checker && python dns-domain-expiration-checker.py --interactive --domainfile myDomainList --sleeptime 3 --email --smtpserver smtp.mail.com --smtpto "receiver@apowo.com" --smtpfrom "sender@apowo.com" > dns-domain-expiration-checker.py.cron.log 2>&1 && curl -kfsS --retry 3 --connect-timeout 10 --ipv4 https://cronmon.abc.com/api/monlink/dd250236-1efb-11e9-b39f-001jk272e686 >> dns-domain-expiration-checker.py.cron.log
+</pre>
 
 # Checking DNS Domain Expiration
 
