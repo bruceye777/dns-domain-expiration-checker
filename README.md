@@ -1,3 +1,22 @@
+# 脚本修改和优化之处
+
+1）去除Registrar字段输出，防止某些域名此字段长度过长，影响对齐；
+2）增加Status字段，如果剩余日期小于设置的域名过期告警时间，则显示"Expiring"，否则显示“Valid”；
+3）增加对cn域名的支持（在EXPIRE_STRINGS增加"Expiration Time:"）；
+4）添加邮件发送的SMTP设置（增加用户名和密码设置项和EHLO命令）；
+5）经过使用发现，发现whois命令有概率会卡住，因此增加whois命令的超时时间设置（添加timeout 15）。
+
+# 执行相关
+
+脚本输出结果示例如下：
+Domain Name                Expiration Date                 Days Left   Threshold   Status    
+abc.com                    2020-02-06 00:37:35             329         30          Valid
+xyz.com                    2019-07-21 14:27:36             130         150         Expiring
+sample.com                 2019-09-07 21:48:29             178         30          Valid
+
+计划任务配置如下（结合cronmon）：
+40 10 * * * cd /path/to/dns-domain-expiration-checker && python dns-domain-expiration-checker.py --interactive --domainfile myDomainList --sleeptime 3 --email --smtpserver smtp.mail.com --smtpto "receiver@apowo.com" --smtpfrom "sender@apowo.com" > dns-domain-expiration-checker.py.cron.log 2>&1 && curl -kfsS --retry 3 --connect-timeout 10 --ipv4 https://cronmon.abc.com/api/monlink/dd250236-1efb-11e9-b39f-001jk272e686 >> dns-domain-expiration-checker.py.cron.log
+
 # Checking DNS Domain Expiration
 
 If you are here you may have had a domain expire and dealt with the annoyances that go with reclaiming it. It's no fun is it? To prevent yourself from dealing with this again you can install and run dns-domain-expiration-checker.py to monitor your domains. The script is easy to install and will send you an e-mail if your domain is set to expire in the near future. You can also use the script to view the registrars and expiration dates for your domains. Now to some examples.
