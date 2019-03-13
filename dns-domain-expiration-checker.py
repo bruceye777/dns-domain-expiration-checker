@@ -29,7 +29,8 @@ EXPIRE_STRINGS = [ "Registry Expiry Date:",
                    "Domain Expiration Date",
                    "Registrar Registration Expiration Date:",
                    "expire:",
-                   "Expiry date"
+                   "Expiry date",
+                   "Expiration Time:"
                  ]
 
 REGISTRAR_STRINGS = [
@@ -51,16 +52,16 @@ def print_heading():
     """
        Print a formatted heading when called interactively
     """
-    print("%-25s  %-20s  %-30s  %-4s" % ("Domain Name", "Registrar",
-          "Expiration Date", "Days Left"))
+    print("%-25s  %-30s  %-10s  %-10s  %-10s" % ("Domain Name",
+          "Expiration Date", "Days Left", "Threshold", "Status"))
 
 
-def print_domain(domain, registrar, expiration_date, days_remaining):
+def print_domain(domain, expiration_date, days_remaining, expiration_days, status):
     """
        Pretty print the domain information on stdout
     """
-    print("%-25s  %-20s  %-30s  %-d" % (domain, registrar,
-          expiration_date, days_remaining))
+    print("%-25s  %-30s  %-10d  %-10s  %-10s" % (domain,
+          expiration_date, days_remaining, expiration_days, status))
 
 
 def make_whois_query(domain):
@@ -69,7 +70,7 @@ def make_whois_query(domain):
     """
     debug("Sending a WHOIS query for the domain %s" % domain)
     try:
-        p = subprocess.Popen(['whois', domain],
+        p = subprocess.Popen(['timeout', '15', 'whois', domain],
                              stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     except Exception as e:
         print("Unable to Popen() the whois binary. Exception %s" % e)
@@ -162,10 +163,14 @@ def send_expire_email(domain, days, config_options):
     msg['To'] = config_options["smtpto"]
     msg['Subject'] = "The DNS Domain %s is set to expire in %d days" % (domain, days)
 
+    username = 'abc@xyz.com'
+    password = 'yourPwd'
     body = "Time to renew %s" % domain
     msg.attach(MIMEText(body, 'plain'))
 
     smtp_connection = smtplib.SMTP(config_options["smtpserver"],config_options["smtpport"])
+    smtp_connection.ehlo()
+    smtp_connection.login(username, password)
     message = msg.as_string()
     smtp_connection.sendmail(config_options["smtpfrom"], config_options["smtpto"], message)
     smtp_connection.quit()
@@ -216,10 +221,13 @@ def main():
                 days_remaining = calculate_expiration_days(expiration_days, expiration_date)
 
                 if check_expired(expiration_days, days_remaining):
+                    status = "Expiring"
                     domain_expire_notify(domainname, conf_options, days_remaining)
+                else:
+                    status = "Valid"
 
                 if conf_options["interactive"]:
-                    print_domain(domainname, registrar, expiration_date, days_remaining)
+                    print_domain(domainname, expiration_date, days_remaining, expiration_days, status)
 
                 # Need to wait between queries to avoid triggering DOS measures like so:
                 # Your IP has been restricted due to excessive access, please wait a bit
@@ -230,10 +238,14 @@ def main():
         days_remaining = calculate_expiration_days(conf_options["expiredays"], expiration_date)
 
         if check_expired(conf_options["expiredays"], days_remaining):
+            status = "Expiring"
             domain_expire_notify(conf_options["domainname"], conf_options, days_remaining)
+        else:
+            status = "Valid"
 
         if conf_options["interactive"]:
-            print_domain(conf_options["domainname"], registrar, expiration_date, days_remaining)
+            expiration_days = conf_options["expiredays"]
+            print_domain(conf_options["domainname"], expiration_date, days_remaining, expiration_days, status)
 
         # Need to wait between queries to avoid triggering DOS measures like so:
         # Your IP has been restricted due to excessive access, please wait a bit
